@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Cache</title>
+    <script>
+        // Force clear all caches
+        if ('caches' in window) {
+            caches.keys().then(function(names) {
+                for (let name of names) caches.delete(name);
+            });
+        }
+        
+        // Clear localStorage
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Unregister service workers
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+        
+        alert('Cache cleared! Redirecting...');
+        setTimeout(() => {
+            window.location.href = 'http://localhost:3000';
+        }, 1000);
+    </script>
+</head>
+<body>
+    <h1>Clearing cache...</h1>
+</body>
+</html>
