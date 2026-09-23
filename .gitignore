@@ -8,3 +8,5 @@ build
 .DS_Store
 .vercel
 *.md
+.vscode
+.vercel
