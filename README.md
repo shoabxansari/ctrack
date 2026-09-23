@@ -115,7 +115,7 @@ See `supabase-schema.sql` for complete schema including:
 - [ ] Add weather integration
 - [ ] Add challenges & achievements
 - [ ] Add group rides
-- [ ] Add route planning
+- [ ] Add route plannings
 
 ## Contributing
 
