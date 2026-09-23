@@ -92,6 +92,9 @@ export default function RideTracker() {
   };
 
   const handleStopRide = async () => {
+    // Ask user if they want to make the ride public
+    const makePublic = confirm('Make this ride public?\n\n✅ Public: Visible on leaderboards and feed\n❌ Private: Only you can see it');
+    
     stopRide();
 
     // Save ride to Supabase or offline storage
@@ -105,7 +108,7 @@ export default function RideTracker() {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user && navigator.onLine) {
-          // Save to Supabase
+          // Save to Supabase with user's privacy choice
           const { data: rideData } = await supabase.from('rides').insert({
             user_id: user.id,
             start_time: new Date(currentRide.startTime || 0).toISOString(),
@@ -113,6 +116,8 @@ export default function RideTracker() {
             distance,
             avg_speed: avgSpeed,
             max_speed: maxSpeed,
+            is_public: makePublic,
+            title: `${distance.toFixed(1)}km Ride`,
           }).select().single();
 
           // Save ride points

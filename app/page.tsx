@@ -22,7 +22,7 @@ export default function Home() {
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
         setUser(session?.user ?? null);
-        requestLocationPermission();
+        // Don't auto-request location - let user click the button
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         router.push('/landing');
@@ -36,10 +36,6 @@ export default function Home() {
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      router.push('/landing');
-      return;
-    }
     setUser(session?.user ?? null);
     setLoading(false);
   };
@@ -59,24 +55,53 @@ export default function Home() {
   };
 
   const requestLocationPermission = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocationPermission('granted');
-          console.log('Location access granted:', position.coords);
-        },
-        (error) => {
-          setLocationPermission('denied');
-          console.error('Location access denied:', error);
-          alert('Location access denied. Please enable location in your browser settings.');
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        }
-      );
+    // Check if geolocation is available
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
     }
+
+    // Check if we're on HTTP (not HTTPS) - required for mobile
+    const isSecure = window.location.protocol === 'https:' || 
+                     window.location.hostname === 'localhost' ||
+                     window.location.hostname === '127.0.0.1';
+    
+    if (!isSecure && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      alert('⚠️ Location requires HTTPS on mobile!\n\nTo test on mobile:\n1. Deploy to Vercel/Netlify (free)\n2. Or use ngrok for HTTPS tunnel\n3. Or access via your computer\'s IP (http://192.168.x.x:3000)');
+      return;
+    }
+
+    console.log('Requesting location permission...');
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocationPermission('granted');
+        console.log('✅ Location access granted:', position.coords);
+      },
+      (error) => {
+        console.error('❌ Location error:', error);
+        setLocationPermission('denied');
+        
+        let errorMessage = 'Location access denied. ';
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += 'Please enable location in your browser settings.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += 'Location information unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage += 'Location request timed out.';
+            break;
+        }
+        alert(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
   };
 
   if (loading) {
@@ -88,27 +113,68 @@ export default function Home() {
   }
 
   if (!user) {
-    return null; // Will redirect to landing
+    return <AuthForm />;
   }
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Navbar />
+      
+      {/* HTTPS Warning for Mobile */}
+      {typeof window !== 'undefined' && 
+       window.location.protocol === 'http:' && 
+       window.location.hostname !== 'localhost' &&
+       window.location.hostname !== '127.0.0.1' &&
+       /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && (
+        <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-4 text-center">
+          <p className="font-bold text-lg mb-1">⚠️ HTTPS Required for Location</p>
+          <p className="text-sm mb-2">Mobile browsers need HTTPS to access GPS</p>
+          <details className="text-xs text-left max-w-2xl mx-auto bg-black/20 p-3 mt-2">
+            <summary className="cursor-pointer font-semibold mb-2">How to fix this?</summary>
+            <div className="space-y-2">
+              <p><strong>Option 1:</strong> Deploy to Vercel (free): <code>npm install -g vercel && vercel</code></p>
+              <p><strong>Option 2:</strong> Use ngrok: <code>ngrok http 3000</code></p>
+              <p><strong>Option 3:</strong> Access via computer IP: <code>http://192.168.x.x:3000</code></p>
+              <p className="pt-2 border-t border-white/20">See MOBILE_ACCESS.md for detailed instructions</p>
+            </div>
+          </details>
+        </div>
+      )}
+      
       {locationPermission === 'denied' && (
-        <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-3 text-center">
-          <p className="font-semibold">📍 Location access is required for ride tracking</p>
-          <p className="text-sm">Please enable location in your browser settings</p>
+        <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-4 py-4 text-center">
+          <p className="font-bold text-lg mb-1">📍 Location Access Denied</p>
+          <p className="text-sm mb-2">Location is required for ride tracking</p>
+          <details className="text-xs text-left max-w-2xl mx-auto bg-black/20 p-3 mt-2">
+            <summary className="cursor-pointer font-semibold mb-2">How to enable location?</summary>
+            <div className="space-y-2">
+              <p><strong>Chrome (Android):</strong> Tap the lock icon in address bar → Permissions → Location → Allow</p>
+              <p><strong>Safari (iOS):</strong> Settings → Safari → Location → Ask or Allow</p>
+              <p><strong>Chrome (iOS):</strong> Settings → Chrome → Location → While Using the App</p>
+              <p className="pt-2 border-t border-white/20">After enabling, refresh this page.</p>
+            </div>
+          </details>
         </div>
       )}
       {locationPermission === 'prompt' && (
-        <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-3 text-center">
-          <p className="font-semibold">📍 Location Permission Needed</p>
+        <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-4 text-center">
+          <p className="font-bold text-lg mb-1">📍 Location Permission Needed</p>
+          <p className="text-sm mb-3">Click below to enable GPS tracking</p>
           <button
             onClick={requestLocationPermission}
-            className="mt-2 px-6 py-2 bg-white text-blue-600 font-semibold hover:bg-gray-100 transition-all"
+            className="px-8 py-3 bg-white text-blue-600 font-bold hover:bg-gray-100 transition-all border-4 border-blue-800 shadow-[4px_4px_0px_0px_rgba(30,58,138,0.5)] text-base"
           >
-            Enable Location Access
+            🎯 Enable Location Access
           </button>
+          <details className="text-xs text-left max-w-2xl mx-auto bg-black/20 p-3 mt-3">
+            <summary className="cursor-pointer font-semibold mb-2">Not seeing the permission popup?</summary>
+            <div className="space-y-2">
+              <p>1. Make sure location is enabled on your device (Settings → Location)</p>
+              <p>2. Check if you previously blocked this site (look for 🚫 icon in address bar)</p>
+              <p>3. Try clearing browser cache and revisiting</p>
+              <p>4. For HTTPS sites only: Some browsers require secure connection</p>
+            </div>
+          </details>
         </div>
       )}
       <div className="flex-1 overflow-hidden">

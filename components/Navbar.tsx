@@ -39,11 +39,20 @@ export default function Navbar({ showNav = true }: NavbarProps) {
               <a href="/dashboard" className="text-gray-700 hover:text-orange-500 transition-colors font-medium">
                 Dashboard
               </a>
-              <a href="/analytics" className="text-gray-700 hover:text-orange-500 transition-colors font-medium">
-                Analytics
+              <a href="/feed" className="text-gray-700 hover:text-orange-500 transition-colors font-medium">
+                Feed
+              </a>
+              <a href="/leaderboard" className="text-gray-700 hover:text-orange-500 transition-colors font-medium">
+                Leaderboard
+              </a>
+              <a href="/challenges" className="text-gray-700 hover:text-orange-500 transition-colors font-medium">
+                Challenges
               </a>
               <a href="/social" className="text-gray-700 hover:text-orange-500 transition-colors font-medium">
                 Social
+              </a>
+              <a href="/analytics" className="text-gray-700 hover:text-orange-500 transition-colors font-medium">
+                Analytics
               </a>
               <a href="/safety" className="text-gray-700 hover:text-orange-500 transition-colors font-medium">
                 Safety
@@ -77,11 +86,20 @@ export default function Navbar({ showNav = true }: NavbarProps) {
           <a href="/dashboard" className="text-sm text-gray-700 hover:text-orange-500 whitespace-nowrap font-medium">
             Dashboard
           </a>
-          <a href="/analytics" className="text-sm text-gray-700 hover:text-orange-500 whitespace-nowrap font-medium">
-            Analytics
+          <a href="/feed" className="text-sm text-gray-700 hover:text-orange-500 whitespace-nowrap font-medium">
+            Feed
+          </a>
+          <a href="/leaderboard" className="text-sm text-gray-700 hover:text-orange-500 whitespace-nowrap font-medium">
+            Leaderboard
+          </a>
+          <a href="/challenges" className="text-sm text-gray-700 hover:text-orange-500 whitespace-nowrap font-medium">
+            Challenges
           </a>
           <a href="/social" className="text-sm text-gray-700 hover:text-orange-500 whitespace-nowrap font-medium">
             Social
+          </a>
+          <a href="/analytics" className="text-sm text-gray-700 hover:text-orange-500 whitespace-nowrap font-medium">
+            Analytics
           </a>
           <a href="/safety" className="text-sm text-gray-700 hover:text-orange-500 whitespace-nowrap font-medium">
             Safety

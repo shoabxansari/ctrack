@@ -38,11 +38,11 @@ export default function MapComponent({ points, center }: MapComponentProps) {
       source: vectorSource,
       style: new Style({
         stroke: new Stroke({
-          color: '#3b82f6',
+          color: '#f97316', // Orange color for route
           width: 4,
         }),
         image: new Circle({
-          radius: 6,
+          radius: 8,
           fill: new Fill({ color: '#ef4444' }),
           stroke: new Stroke({ color: '#fff', width: 2 }),
         }),
@@ -71,17 +71,19 @@ export default function MapComponent({ points, center }: MapComponentProps) {
     };
   }, []);
 
-  // Update map center when center prop changes
+  // Update map when points change
   useEffect(() => {
-    if (mapInstanceRef.current && center) {
-      mapInstanceRef.current.getView().setCenter(fromLonLat(center));
-    }
-  }, [center]);
-
-  useEffect(() => {
-    if (!vectorSourceRef.current || points.length === 0) return;
+    if (!vectorSourceRef.current || !mapInstanceRef.current) return;
 
     vectorSourceRef.current.clear();
+
+    if (points.length === 0) {
+      // No points, use center or default
+      if (center) {
+        mapInstanceRef.current.getView().setCenter(fromLonLat(center));
+      }
+      return;
+    }
 
     // Draw route line
     if (points.length > 1) {
@@ -90,20 +92,47 @@ export default function MapComponent({ points, center }: MapComponentProps) {
         geometry: new LineString(coordinates),
       });
       vectorSourceRef.current.addFeature(lineFeature);
+
+      // Fit map to show entire route
+      const extent = lineFeature.getGeometry()?.getExtent();
+      if (extent) {
+        mapInstanceRef.current.getView().fit(extent, {
+          padding: [50, 50, 50, 50],
+          maxZoom: 16,
+        });
+      }
     }
 
-    // Draw current position marker
-    if (points.length > 0) {
-      const lastPoint = points[points.length - 1];
-      const markerFeature = new Feature({
-        geometry: new Point(fromLonLat([lastPoint.lng, lastPoint.lat])),
+    // Draw start marker (green)
+    const startPoint = points[0];
+    const startMarker = new Feature({
+      geometry: new Point(fromLonLat([startPoint.lng, startPoint.lat])),
+    });
+    startMarker.setStyle(new Style({
+      image: new Circle({
+        radius: 8,
+        fill: new Fill({ color: '#22c55e' }), // Green for start
+        stroke: new Stroke({ color: '#fff', width: 2 }),
+      }),
+    }));
+    vectorSourceRef.current.addFeature(startMarker);
+
+    // Draw end marker (red) if more than one point
+    if (points.length > 1) {
+      const endPoint = points[points.length - 1];
+      const endMarker = new Feature({
+        geometry: new Point(fromLonLat([endPoint.lng, endPoint.lat])),
       });
-      vectorSourceRef.current.addFeature(markerFeature);
-
-      // Center map on current position
-      mapInstanceRef.current?.getView().setCenter(fromLonLat([lastPoint.lng, lastPoint.lat]));
+      endMarker.setStyle(new Style({
+        image: new Circle({
+          radius: 8,
+          fill: new Fill({ color: '#ef4444' }), // Red for end
+          stroke: new Stroke({ color: '#fff', width: 2 }),
+        }),
+      }));
+      vectorSourceRef.current.addFeature(endMarker);
     }
-  }, [points]);
+  }, [points, center]);
 
   return <div ref={mapRef} className="w-full h-full" />;
 }

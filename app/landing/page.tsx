@@ -58,13 +58,13 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
                 href="/"
-                className="px-8 py-4 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all"
+                className="px-8 py-4 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,0.3)]"
               >
                 Start Riding Free
               </a>
               <a
                 href="#features"
-                className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-bold text-lg hover:bg-white/20 transition-all"
+                className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-bold text-lg hover:bg-white/20 transition-all border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]"
               >
                 Learn More
               </a>
@@ -143,7 +143,7 @@ export default function LandingPage() {
         </p>
         <a
           href="/"
-          className="inline-block px-12 py-5 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold text-xl hover:shadow-2xl hover:scale-105 transition-all"
+          className="inline-block px-12 py-5 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold text-xl hover:shadow-2xl hover:scale-105 transition-all border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,0.3)]"
         >
           Get Started
         </a>

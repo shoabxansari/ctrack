@@ -31,6 +31,31 @@ export default function Dashboard() {
     }
   };
 
+  const deleteRide = async (rideId: string, e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation
+    e.stopPropagation();
+    
+    if (!confirm('Are you sure you want to delete this ride? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('rides')
+        .delete()
+        .eq('id', rideId);
+
+      if (error) throw error;
+      
+      // Remove from local state
+      setRides(rides.filter(r => r.id !== rideId));
+      alert('Ride deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting ride:', error);
+      alert('Failed to delete ride. Please try again.');
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -76,49 +101,57 @@ export default function Dashboard() {
         ) : (
           <div className="grid gap-4">
             {rides.map((ride) => (
-              <a
+              <div
                 key={ride.id}
-                href={`/ride/${ride.id}`}
-                className="block bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all border border-gray-100 group"
+                className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all border border-gray-100 group relative"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-orange-500 transition-colors">
-                      {formatDate(ride.start_time)}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {formatDuration(ride.start_time, ride.end_time)}
-                    </p>
-                  </div>
-                  <span className="text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                    View →
-                  </span>
-                </div>
+                {/* Delete button - top right */}
+                <button
+                  onClick={(e) => deleteRide(ride.id, e)}
+                  className="absolute top-4 right-4 p-2 bg-red-500 hover:bg-red-600 text-white transition-all opacity-0 group-hover:opacity-100 z-10"
+                  title="Delete ride"
+                >
+                  🗑️
+                </button>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl">
-                    <div className="text-xs text-blue-600 font-medium mb-1">Distance</div>
-                    <div className="text-2xl font-black text-blue-900">
-                      {ride.distance.toFixed(2)}
-                      <span className="text-sm font-normal ml-1">km</span>
+                {/* Clickable ride content */}
+                <a href={`/ride/${ride.id}`} className="block">
+                  <div className="flex justify-between items-start mb-4 pr-12">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 group-hover:text-orange-500 transition-colors">
+                        {ride.title || formatDate(ride.start_time)}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {formatDuration(ride.start_time, ride.end_time)}
+                      </p>
                     </div>
                   </div>
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl">
-                    <div className="text-xs text-green-600 font-medium mb-1">Avg Speed</div>
-                    <div className="text-2xl font-black text-green-900">
-                      {ride.avg_speed.toFixed(1)}
-                      <span className="text-sm font-normal ml-1">km/h</span>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl">
+                      <div className="text-xs text-blue-600 font-medium mb-1">Distance</div>
+                      <div className="text-2xl font-black text-blue-900">
+                        {ride.distance.toFixed(2)}
+                        <span className="text-sm font-normal ml-1">km</span>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl">
+                      <div className="text-xs text-green-600 font-medium mb-1">Avg Speed</div>
+                      <div className="text-2xl font-black text-green-900">
+                        {ride.avg_speed.toFixed(1)}
+                        <span className="text-sm font-normal ml-1">km/h</span>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl">
+                      <div className="text-xs text-purple-600 font-medium mb-1">Max Speed</div>
+                      <div className="text-2xl font-black text-purple-900">
+                        {ride.max_speed.toFixed(1)}
+                        <span className="text-sm font-normal ml-1">km/h</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl">
-                    <div className="text-xs text-purple-600 font-medium mb-1">Max Speed</div>
-                    <div className="text-2xl font-black text-purple-900">
-                      {ride.max_speed.toFixed(1)}
-                      <span className="text-sm font-normal ml-1">km/h</span>
-                    </div>
-                  </div>
-                </div>
-              </a>
+                </a>
+              </div>
             ))}
           </div>
         )}

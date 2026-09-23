@@ -55,18 +55,79 @@ export default function SafetyPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const token = Math.random().toString(36).substring(7);
-    await supabase.from('live_tracking').insert({
-      user_id: user.id,
-      share_token: token,
-      is_active: true,
-    });
+    // Get current location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const token = Math.random().toString(36).substring(7);
+        const { data, error } = await supabase.from('live_tracking').insert({
+          user_id: user.id,
+          share_token: token,
+          is_active: true,
+          last_location: `POINT(${position.coords.longitude} ${position.coords.latitude})`,
+          last_update: new Date().toISOString()
+        }).select().single();
 
-    checkLiveTracking();
+        if (!error && data) {
+          setLiveTracking(data);
+          // Start updating location every 10 seconds
+          startLocationUpdates(data.id);
+          
+          // Show share options
+          shareTrackingLink(data.share_token, position.coords.latitude, position.coords.longitude);
+        }
+      });
+    }
+  };
+
+  const shareTrackingLink = async (token: string, lat: number, lng: number) => {
+    const trackingUrl = `${window.location.origin}/track/${token}`;
+    const mapUrl = `https://maps.google.com/?q=${lat},${lng}`;
+    const message = `📍 I'm sharing my live location with you!\n\n🔗 Track me here: ${trackingUrl}\n\n📌 Current location: ${mapUrl}\n\nStay updated in real-time!`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: '📍 Live Location Tracking',
+          text: message,
+          url: trackingUrl
+        });
+      } catch (error) {
+        console.log('Share cancelled');
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      navigator.clipboard.writeText(message);
+      alert('Tracking link copied to clipboard!\n\nShare it with friends and family.');
+    }
+  };
+
+  const startLocationUpdates = (trackingId: string) => {
+    const interval = setInterval(() => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          await supabase
+            .from('live_tracking')
+            .update({
+              last_location: `POINT(${position.coords.longitude} ${position.coords.latitude})`,
+              last_update: new Date().toISOString()
+            })
+            .eq('id', trackingId);
+        });
+      }
+    }, 10000); // Update every 10 seconds
+
+    // Store interval ID to clear later
+    (window as any).liveTrackingInterval = interval;
   };
 
   const stopLiveTracking = async () => {
     if (!liveTracking) return;
+    
+    // Clear location update interval
+    if ((window as any).liveTrackingInterval) {
+      clearInterval((window as any).liveTrackingInterval);
+    }
+    
     await supabase
       .from('live_tracking')
       .update({ is_active: false })
@@ -82,9 +143,35 @@ export default function SafetyPage() {
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async (position) => {
-        const message = `🚨 SOS Alert! Location: https://maps.google.com/?q=${position.coords.latitude},${position.coords.longitude}`;
-        alert(`SOS sent to ${contacts.length} contacts!\n\n${message}`);
+        const message = `🚨 SOS Alert from Zyclist!\n\nI need help! My current location:\nhttps://maps.google.com/?q=${position.coords.latitude},${position.coords.longitude}\n\nPlease check on me!`;
+        
+        // Try native share first (works on mobile)
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: '🚨 SOS Alert',
+              text: message
+            });
+            return;
+          } catch (error) {
+            console.log('Share cancelled or failed');
+          }
+        }
+        
+        // Fallback: Open SMS app with pre-filled message (mobile only)
+        if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+          const phones = contacts.map(c => c.phone).join(',');
+          window.location.href = `sms:${phones}?body=${encodeURIComponent(message)}`;
+        } else {
+          // Desktop: Copy to clipboard
+          navigator.clipboard.writeText(message);
+          alert(`SOS message copied to clipboard!\n\nPlease send this to your emergency contacts:\n\n${contacts.map(c => `${c.name}: ${c.phone}`).join('\n')}`);
+        }
+      }, (error) => {
+        alert('Unable to get location. Please enable location services.');
       });
+    } else {
+      alert('Geolocation is not supported by your browser.');
     }
   };
 
@@ -118,12 +205,33 @@ export default function SafetyPage() {
               <div className="bg-black/30 p-4 mb-4 break-all text-orange-400 font-mono text-sm border border-orange-500/30">
                 {window.location.origin}/track/{liveTracking.share_token}
               </div>
-              <button
-                onClick={stopLiveTracking}
-                className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 font-semibold transition-all"
-              >
-                Stop Sharing
-              </button>
+              <div className="flex gap-3 mb-4">
+                <button
+                  onClick={async () => {
+                    if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(async (position) => {
+                        await shareTrackingLink(
+                          liveTracking.share_token,
+                          position.coords.latitude,
+                          position.coords.longitude
+                        );
+                      });
+                    }
+                  }}
+                  className="flex-1 bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white px-6 py-3 font-semibold transition-all border-2 border-white"
+                >
+                  📤 Share Location
+                </button>
+                <button
+                  onClick={stopLiveTracking}
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 font-semibold transition-all"
+                >
+                  Stop Sharing
+                </button>
+              </div>
+              <p className="text-xs text-gray-400">
+                💡 Location updates every 10 seconds while active
+              </p>
             </div>
           ) : (
             <button

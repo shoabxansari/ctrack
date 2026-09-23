@@ -41,6 +41,7 @@ export default function RideDetailPage() {
       }
 
       if (pointsData && pointsData.length > 0) {
+        console.log('Loading ride points:', pointsData.length);
         const gpsPoints: GPSPoint[] = pointsData.map((p: any) => {
           // Handle both POINT format and coordinates array
           let lat, lng;
@@ -65,12 +66,36 @@ export default function RideDetailPage() {
           };
         });
 
+        console.log('Parsed GPS points:', gpsPoints.slice(0, 3)); // Log first 3 points
         setPoints(gpsPoints);
+      } else {
+        console.log('No ride points found for ride:', params.id);
       }
     } catch (error) {
       console.error('Error loading ride:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteRide = async () => {
+    if (!confirm('Are you sure you want to delete this ride? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('rides')
+        .delete()
+        .eq('id', params.id);
+
+      if (error) throw error;
+      
+      alert('Ride deleted successfully!');
+      window.location.href = '/dashboard';
+    } catch (error) {
+      console.error('Error deleting ride:', error);
+      alert('Failed to delete ride. Please try again.');
     }
   };
 
@@ -106,11 +131,19 @@ export default function RideDetailPage() {
         <Navbar />
         <div className="bg-gradient-to-r from-orange-500/20 to-pink-500/20 backdrop-blur-lg border-b border-white/10">
           <div className="max-w-6xl mx-auto p-6">
-            <div className="mb-6">
-              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">
-                {ride.title || 'Ride Details'}
-              </h1>
-              <p className="text-gray-400">{formatDate(ride.start_time)}</p>
+            <div className="mb-6 flex justify-between items-start">
+              <div>
+                <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">
+                  {ride.title || 'Ride Details'}
+                </h1>
+                <p className="text-gray-400">{formatDate(ride.start_time)}</p>
+              </div>
+              <button
+                onClick={deleteRide}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold transition-all border-2 border-white"
+              >
+                🗑️ Delete
+              </button>
             </div>
 
           <div className="grid grid-cols-4 gap-4">
@@ -138,7 +171,17 @@ export default function RideDetailPage() {
 
       <div className="max-w-6xl mx-auto p-6">
         <div className="bg-white/10 backdrop-blur-lg border border-white/20 overflow-hidden" style={{ height: '500px' }}>
-          <MapComponent points={points} />
+          {points.length > 0 ? (
+            <MapComponent points={points} />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🗺️</div>
+                <h3 className="text-2xl font-bold text-white mb-2">No Route Data</h3>
+                <p className="text-gray-400">This ride doesn't have GPS tracking data.</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
